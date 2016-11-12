@@ -60,26 +60,33 @@ class TiebaSpider:
         usedurl=cursor.fetchall()
         for i in usedurl:
             self.usedset.add(i[0])
-            print(i[0])
+            #print(i[0])
         usedurl.clear()
         cursor.execute("select max(id) from postUrl")
         maxId=cursor.fetchall()
         if maxId[0][0] is not None:
             self.postIdx=int(maxId[0][0])+1
-        print("start from index"+str(self.postIdx))
+        else:
+            print("database error! now function start() aborted.")
+            return
+        print("start from index "+str(self.postIdx))
 
         cursor.execute("select max(id) from post")
         maxId=cursor.fetchall()
         if maxId[0][0] is not None:
             self.spostIdx=int(maxId[0][0])+1
-        print("start from small post index"+str(self.spostIdx))
+        else:
+            print("database error! now function start() aborted.")
+            return
+        print("start from small post index "+str(self.spostIdx))
         tre = re.compile(r"^/p")
         tt = re.compile(r"^next")
         while True:
             if self.pageCnt>=self.MaxPage:
                 break
+
             pageNow=requests.get(self.nextPage)
-            self.soup=BeautifulSoup(pageNow.content,"html.parser")
+            self.soup=BeautifulSoup(pageNow.content,"lxml")
             atag = self.soup.find_all("a")
             for i in atag:
                 if self.pageCnt>=self.MaxPage:
@@ -94,12 +101,13 @@ class TiebaSpider:
                     pass
                 try:
                     if re.match(tre,allcs["href"]):
-                        print(allcs["href"])
+                        #print(allcs["href"])
                         if allcs["href"] not in self.usedset:
                             self.usedset.add(allcs["href"])
                             self.pages.append(allcs["href"])
                             self.pageCnt=self.pageCnt+1
-                        print(i.string)
+                            print("new page:%s,%s"%(allcs["href"],i.string))
+                        #print(i.string)
                 except:
                     pass
 
@@ -107,6 +115,7 @@ class TiebaSpider:
         postNextRe=re.compile(r"^下一页")
         fileCnt=0
         postString = []
+        print("0")
         for i in range(1,self.pageCnt+1):
 
             nextPostPage=self.pages[i-1]
@@ -120,7 +129,7 @@ class TiebaSpider:
                 lastPostPage=nextPostPage
                 rq=requests.get(self.preurl+nextPostPage)
                 print("next Page start:"+nextPostPage)
-                tSoup=BeautifulSoup(rq.content,"html.parser")
+                tSoup=BeautifulSoup(rq.content,"lxml")
                 alldiv=tSoup.find_all("div")
                 print(len(alldiv))
                 for j in alldiv:
@@ -171,5 +180,5 @@ class TiebaSpider:
 
 if __name__=="__main__":
     mSpider=TiebaSpider(url=r"http://tieba.baidu.com/f?ie=utf-8&kw=%E5%8D%97%E5%B1%B1%E4%B8%AD%E5%AD%A6")
-    mSpider.setMaxPage(50)
+    mSpider.setMaxPage(1000)
     mSpider.start()
